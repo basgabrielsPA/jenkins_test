@@ -56,23 +56,23 @@ pipeline {
             -l "$RESULTS_DIR/results.jtl" -f \
 			
 			
-			-J jmeter.save.saveservice.output_format=csv \
-			-J jmeter.save.saveservice.bytes=true \
-			-J jmeter.save.saveservice.label=true \
-			-J jmeter.save.saveservice.latency=true \
-			-J jmeter.save.saveservice.response_code=true \
-			-J jmeter.save.saveservice.response_message=true \
-			-J jmeter.save.saveservice.successful=true \
-			-J jmeter.save.saveservice.thread_counts=true \
-			-J jmeter.save.saveservice.thread_name=true \
-			-J jmeter.save.saveservice.time=true \
-			-J jmeter.save.saveservice.connect_time=true \
-			-J jmeter.save.saveservice.timestamp_format="yyyy/MM/dd HH:mm:ss" \
-			-J jmeter.reportgenerator.apdex_satisfied_threshold=500 \
-			-J jmeter.reportgenerator.apdex_tolerated_threshold=1500 \
-			-J aggregate_rpt_pct1=90 -Jaggregate_rpt_pct2=95 -Jaggregate_rpt_pct3=99 \
-			-J jmeter.reportgenerator.exporter.html.series_filter="^(Login|Search|Checkout)$" \
-			-J jmeter.reportgenerator.overall_granularity=60000 \
+			-Jjmeter.save.saveservice.output_format=csv \
+			-Jjmeter.save.saveservice.bytes=true \
+			-Jjmeter.save.saveservice.label=true \
+			-Jjmeter.save.saveservice.latency=true \
+			-Jjmeter.save.saveservice.response_code=true \
+			-Jjmeter.save.saveservice.response_message=true \
+			-Jjmeter.save.saveservice.successful=true \
+			-Jjmeter.save.saveservice.thread_counts=true \
+			-Jjmeter.save.saveservice.thread_name=true \
+			-Jjmeter.save.saveservice.time=true \
+			-Jjmeter.save.saveservice.connect_time=true \
+			-Jjmeter.save.saveservice.timestamp_format="yyyy/MM/dd HH:mm:ss" \
+			-Jjmeter.reportgenerator.apdex_satisfied_threshold=500 \
+			-Jjmeter.reportgenerator.apdex_tolerated_threshold=1500 \
+			-Jaggregate_rpt_pct1=90 -Jaggregate_rpt_pct2=95 -Jaggregate_rpt_pct3=99 \
+			-Jjmeter.reportgenerator.exporter.html.series_filter="^(Login|Search|Checkout)$" \
+			-Jjmeter.reportgenerator.overall_granularity=60000 \
 
 			
             -e -o "$RESULTS_DIR/report" \
