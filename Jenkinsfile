@@ -31,7 +31,9 @@ pipeline {
                 sh '''
                   mkdir -p results
                   # Run JMeter in non-GUI mode
-                  jmeter -n -t "$JMETER_TEST" -l results/results.jtl -e -o results/report
+					docker run --rm -v "$PWD:/work" -w /work justb4/jmeter:5.6.3 \
+					  -n -t "$JMETER_TEST" -l results/results.jtl -e -o results/report
+
                 '''
             }
         }
