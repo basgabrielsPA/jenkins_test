@@ -1,73 +1,86 @@
 
 pipeline {
   agent any
+
   environment {
+    // Your test plan relative to the workspace
     JMETER_TEST = 'tests/loadtest.jmx'
+
+    // Convenience variables
+    RESULTS_DIR  = 'results'
+    JMETER_IMAGE = 'alpine/jmeter:5.6.3'
+    ALPINE_IMAGE = 'alpine:3.19'
+    // Optionally: TZ = 'Europe/Amsterdam'
   }
 
   stages {
     stage('Checkout') {
       steps {
-        // If your job is "Pipeline script from SCM", prefer:
+        // For "Pipeline script from SCM", this will pull from the configured repo
         checkout scm
-        // Otherwise use:
-        // git url: 'https://github.com/basgabrielsPA/jenkins_test', branch: 'main'
       }
     }
 
     stage('Validate JMeter script') {
       steps {
         sh '''
-          echo "Workspace: $WORKSPACE"
-          test -f "$JMETER_TEST" || { echo "ERROR: $JMETER_TEST not found"; ls -la; exit 1; }
+          set -euxo pipefail
+          echo "WORKSPACE: $WORKSPACE"
+          ls -la
+          ls -la "$(dirname "$JMETER_TEST")" || true
+
+          # Ensure the test plan exists and is readable in the workspace
+          test -r "$JMETER_TEST" || { echo "ERROR: $JMETER_TEST not readable"; exit 1; }
         '''
       }
     }
 
-    
-	
-	stage('Run JMeter via Docker') {
-	  steps {
-		sh '''
-		  set -euxo pipefail
+    stage('Run JMeter (Docker, named volume for results)') {
+      steps {
+        sh '''
+          set -euxo pipefail
 
-		  # Pre-checks in Jenkins workspace
-		  echo "WORKSPACE: $WORKSPACE"
-		  ls -la
-		  ls -la tests || true
-		  test -r "$JMETER_TEST"
+          # JMeter requires that the -o directory does not already exist
+          rm -rf "$RESULTS_DIR/report"
 
-		  # Ensure fresh report dir requirement
-		  rm -rf results/report
-		  mkdir -p results
+          # Parent dir should exist in the workspace (we will copy into it later)
+          mkdir -p "$RESULTS_DIR"
 
-		  # Create named volume (safe if it already exists)
-		  docker volume create jmeter_results || true
+          # Create Docker named volume for reliable writes (safe if it already exists)
+          docker volume create jmeter_results || true
 
-		  # Run JMeter with absolute paths and matching UID/GID
-		  docker run --rm \
-			-u "$(id -u):$(id -g)" \
-			-v "$WORKSPACE:/work" \
-			-v jmeter_results:/work/results \
-			-w /work \
-			alpine/jmeter:5.6.3 \
-			-n \
-			-t "/work/$JMETER_TEST" \
-			-l "/work/results/results.jtl" \
-			-e -o "/work/results/report" \
-			-j "/work/results/jmeter.log"
+          # Sanity-check: workspace mount visibility from a plain Alpine container
+          docker run --rm \
+            -u "$(id -u):$(id -g)" \
+            -v "$WORKSPACE:/work" \
+            -w /work \
+            "$ALPINE_IMAGE" \
+            ls -la /work >/dev/null
 
-		  # Copy results back from the named volume into the workspace
-		  docker run --rm \
-			-u "$(id -u):$(id -g)" \
-			-v jmeter_results:/src \
-			-v "$WORKSPACE:/dst" \
-			alpine:3.19 sh -c 'cp -r /src/* /dst/results/'
-		'''
-	  }
-	}
+          # Run JMeter using absolute paths and matching UID/GID to avoid mount permission issues
+          docker run --rm \
+            -u "$(id -u):$(id -g)" \
+            -v "$WORKSPACE:/work" \
+            -v jmeter_results:/work/$RESULTS_DIR \
+            -w /work \
+            "$JMETER_IMAGE" \
+            -n \
+            -t "/work/$JMETER_TEST" \
+            -l "/work/$RESULTS_DIR/results.jtl" \
+            -f \
+            -e -o "/work/$RESULTS_DIR/report" \
+            -j "/work/$RESULTS_DIR/jmeter.log"
 
-
+          # Copy results back from the named volume into the Jenkins workspace
+          docker run --rm \
+            -u "$(id -u):$(id -g)" \
+            -v jmeter_results:/src \
+            -v "$WORKSPACE:/dst" \
+            "$ALPINE_IMAGE" \
+            sh -c 'cp -r /src/* /dst/$RESULTS_DIR/'
+        '''
+      }
+    }
 
     stage('Publish HTML Report') {
       steps {
