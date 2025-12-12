@@ -32,7 +32,7 @@ pipeline {
           docker run --rm \
             -v "$PWD:/work" \
             -w /work \
-            justb4/jmeter:5.6.3 \
+            alpine/jmeter:5.6.3 \
             -n -t "$JMETER_TEST" \
             -l results/results.jtl \
             -e -o results/report
