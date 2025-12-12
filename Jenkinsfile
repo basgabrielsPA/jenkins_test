@@ -3,72 +3,91 @@ pipeline {
   agent any
 
   environment {
-    JMETER_TEST = 'tests/loadtest.jmx'       // relative to $WORKSPACE
-    JMETER_IMAGE = 'alpine/jmeter:5.6.3'
-    ALPINE_IMAGE = 'alpine:3.19'
-    RESULTS_DIR  = 'results'
+    JMETER_TEST   = 'tests/loadtest.jmx'
+    JMETER_IMAGE  = 'alpine/jmeter:5.6.3'
+    RESULTS_DIR   = 'results'
+    // Optional: narrow charts to key transactions
+    SERIES_FILTER = '^(Login|Search|Checkout)$'
+    // Optional: APDEX thresholds (ms)
+    APDEX_SAT     = '500'
+    APDEX_TOL     = '1500'
+    // Optional: chart bucket size in ms
+    GRANULARITY   = '60000'
   }
 
   stages {
+
     stage('Checkout') {
       steps {
         checkout scm
       }
     }
 
-    stage('Validate JMeter script (workspace)') {
+    stage('Validate test plan') {
       steps {
         sh '''
           set -euxo pipefail
           echo "WORKSPACE: $WORKSPACE"
-          ls -la
-          ls -la "$(dirname "$JMETER_TEST")" || true
-          test -r "$JMETER_TEST" || { echo "ERROR: $JMETER_TEST not readable in workspace"; exit 1; }
+          test -r "$JMETER_TEST" || { echo "ERROR: $JMETER_TEST not found or not readable"; exit 1; }
         '''
       }
     }
 
-    stage('Run JMeter via Docker (mount Jenkins volumes)') {
+    stage('Prepare JMeter user.properties') {
       steps {
         sh '''
           set -euxo pipefail
 
-		  cat > user.properties <<'EOF'
-			jmeter.save.saveservice.output_format=csv
-			jmeter.save.saveservice.bytes=true
-			jmeter.save.saveservice.label=true
-			jmeter.save.saveservice.latency=true
-			jmeter.save.saveservice.response_code=true
-			jmeter.save.saveservice.response_message=true
-			jmeter.save.saveservice.successful=true
-			jmeter.save.saveservice.thread_counts=true
-			jmeter.save.saveservice.thread_name=true
-			jmeter.save.saveservice.time=true
-			jmeter.save.saveservice.connect_time=true
-			jmeter.save.saveservice.timestamp_format=yyyy/MM/dd HH:mm:ss
-
-			jmeter.reportgenerator.apdex_satisfied_threshold=500
-			jmeter.reportgenerator.apdex_tolerated_threshold=1500
-			aggregate_rpt_pct1=90
-			aggregate_rpt_pct2=95
-			aggregate_rpt_pct3=99
-			jmeter.reportgenerator.exporter.html.series_filter=^(Login|Search|Checkout)$
-			jmeter.reportgenerator.overall_granularity=60000
-			EOF
-
-          # JMeter requires that the -o directory does NOT already exist
+          # JMeter HTML report must be generated into a non-existing folder
           rm -rf "$RESULTS_DIR/report"
           mkdir -p "$RESULTS_DIR"
 
-          # Sanity check: the JMeter container sees the same workspace via --volumes-from jenkins
+          # Create a dashboard-ready properties file
+          cat > "$WORKSPACE/user.properties" <<EOF
+# ---- SaveService: ensure all required CSV columns are present ----
+jmeter.save.saveservice.output_format=csv
+jmeter.save.saveservice.bytes=true
+jmeter.save.saveservice.label=true
+jmeter.save.saveservice.latency=true
+jmeter.save.saveservice.response_code=true
+jmeter.save.saveservice.response_message=true
+jmeter.save.saveservice.successful=true
+jmeter.save.saveservice.thread_counts=true
+jmeter.save.saveservice.thread_name=true
+jmeter.save.saveservice.time=true
+jmeter.save.saveservice.connect_time=true
+jmeter.save.saveservice.timestamp_format=yyyy/MM/dd HH:mm:ss
+
+# ---- Dashboard tuning ----
+jmeter.reportgenerator.apdex_satisfied_threshold=${APDEX_SAT}
+jmeter.reportgenerator.apdex_tolerated_threshold=${APDEX_TOL}
+aggregate_rpt_pct1=90
+aggregate_rpt_pct2=95
+aggregate_rpt_pct3=99
+jmeter.reportgenerator.exporter.html.series_filter=${SERIES_FILTER}
+jmeter.reportgenerator.overall_granularity=${GRANULARITY}
+EOF
+
+          echo "Generated $WORKSPACE/user.properties:"
+          sed -n '1,40p' "$WORKSPACE/user.properties" || true
+        '''
+      }
+    }
+
+    stage('Run JMeter (Docker, volumes-from jenkins)') {
+      steps {
+        sh '''
+          set -euxo pipefail
+
+          # Optional visibility check: the JMeter container should see the same workspace
           docker run --rm \
             --volumes-from jenkins \
             -u "$(id -u):$(id -g)" \
             -w "$WORKSPACE" \
-            "$ALPINE_IMAGE" \
-            sh -c 'echo "Inside container, PWD=$(pwd)"; ls -la .; ls -la "'"$(dirname "$JMETER_TEST")"'" || true'
+            alpine:3.19 \
+            sh -c 'ls -la "$PWD" && ls -la "$(dirname "$JMETER_TEST")"'
 
-          # Run JMeter with absolute working directory at $WORKSPACE
+          # Run JMeter, write JTL, and generate HTML dashboard
           docker run --rm \
             --volumes-from jenkins \
             -u "$(id -u):$(id -g)" \
@@ -76,8 +95,9 @@ pipeline {
             "$JMETER_IMAGE" \
             -n \
             -t "$JMETER_TEST" \
-			-q "$WORKSPACE/user.properties" \
-            -l "$RESULTS_DIR/results.jtl" -f \			
+            -l "$RESULTS_DIR/results.jtl" \
+            -f \
+            -q "$WORKSPACE/user.properties" \
             -e -o "$RESULTS_DIR/report" \
             -j "$RESULTS_DIR/jmeter.log"
         '''
@@ -103,9 +123,9 @@ pipeline {
     }
   }
 
-  // Optional: always collect JMeter log even if the stage fails
   post {
     always {
+      // Handy for debugging dashboard generation issues
       archiveArtifacts artifacts: 'results/jmeter.log', allowEmptyArchive: true
     }
   }
