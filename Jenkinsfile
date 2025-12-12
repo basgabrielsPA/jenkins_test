@@ -25,35 +25,48 @@ pipeline {
     }
 
     
+	
 	stage('Run JMeter via Docker') {
 	  steps {
-		
 		sh '''
 		  set -euxo pipefail
+
+		  # Pre-checks in Jenkins workspace
+		  echo "WORKSPACE: $WORKSPACE"
+		  ls -la
+		  ls -la tests || true
+		  test -r "$JMETER_TEST"
+
+		  # Ensure fresh report dir requirement
 		  rm -rf results/report
 		  mkdir -p results
 
-		  # Use a named volume for the /work/results path (Docker manages perms)
+		  # Create named volume (safe if it already exists)
 		  docker volume create jmeter_results || true
 
+		  # Run JMeter with absolute paths and matching UID/GID
 		  docker run --rm \
-			-v "$PWD:/work" \
+			-u "$(id -u):$(id -g)" \
+			-v "$WORKSPACE:/work" \
 			-v jmeter_results:/work/results \
 			-w /work \
 			alpine/jmeter:5.6.3 \
-			-n -t "$JMETER_TEST" \
-			-l /work/results/results.jtl \
-			-e -o /work/results/report
+			-n \
+			-t "/work/$JMETER_TEST" \
+			-l "/work/results/results.jtl" \
+			-e -o "/work/results/report" \
+			-j "/work/results/jmeter.log"
 
-		  # Copy results back into the workspace so Jenkins can publish/archive them
+		  # Copy results back from the named volume into the workspace
 		  docker run --rm \
+			-u "$(id -u):$(id -g)" \
 			-v jmeter_results:/src \
-			-v "$PWD:/dst" \
+			-v "$WORKSPACE:/dst" \
 			alpine:3.19 sh -c 'cp -r /src/* /dst/results/'
 		'''
-
 	  }
 	}
+
 
 
     stage('Publish HTML Report') {
