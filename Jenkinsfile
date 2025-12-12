@@ -64,7 +64,7 @@ jmeter.reportgenerator.apdex_tolerated_threshold=${APDEX_TOL}
 aggregate_rpt_pct1=90
 aggregate_rpt_pct2=95
 aggregate_rpt_pct3=99
-jmeter.reportgenerator.exporter.html.series_filter=${SERIES_FILTER}
+#jmeter.reportgenerator.exporter.html.series_filter=${SERIES_FILTER}
 jmeter.reportgenerator.overall_granularity=${GRANULARITY}
 EOF
 
