@@ -1,28 +1,66 @@
 
 pipeline {
     agent any
+
+    environment {
+        JMETER_TEST = 'tests/loadtest.jmx'
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/basgabrielsPA/jenkins_test.git'
+                // Jenkins will do this automatically if using "Pipeline from SCM"
+                checkout scm
             }
         }
-        stage('Run JMeter Test') {
+
+        stage('Validate JMeter Script') {
             steps {
                 sh '''
-                docker run --rm -v $PWD:/work -w /work justb4/jmeter:5.6.3 \
-                -n -t tests/loadtest.jmx -l results/results.jtl -e -o results/report
+                  echo "Workspace: $WORKSPACE"
+                  if [ ! -f "$JMETER_TEST" ]; then
+                    echo "ERROR: JMeter script not found at $JMETER_TEST"
+                    exit 1
+                  fi
                 '''
             }
         }
-        stage('Publish Report') {
+
+        stage('Run JMeter Test') {
+            steps {
+                sh '''
+                  mkdir -p results
+                  # Run JMeter in non-GUI mode
+                  jmeter -n -t "$JMETER_TEST" -l results/results.jtl -e -o results/report
+                '''
+            }
+        }
+
+        stage('Publish HTML Report') {
             steps {
                 publishHTML(target: [
                     reportDir: 'results/report',
                     reportFiles: 'index.html',
-                    reportName: 'JMeter Report'
+                    reportName: 'JMeter HTML Report',
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true
                 ])
             }
+        }
+
+        stage('Archive Results') {
+            steps {
+                archiveArtifacts artifacts: 'results/**', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Results saved in $WORKSPACE/results"
+        }
+        failure {
+            echo "Build failed. Check Console Output and HTML report."
         }
     }
 }
