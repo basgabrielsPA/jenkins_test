@@ -4,14 +4,25 @@ pipeline {
   environment {
     JMETER_TEST = 'tests/loadtest.jmx'
   }
+
   stages {
-    
-	stage('Checkout') {
-		  steps {
-			checkout scm
-			sh 'ls -la && ls -la tests || true'
-		  }
-		}
+    stage('Checkout') {
+      steps {
+        // If your job is "Pipeline script from SCM", prefer:
+        checkout scm
+        // Otherwise use:
+        // git url: 'https://github.com/basgabrielsPA/jenkins_test', branch: 'main'
+      }
+    }
+
+    stage('Validate JMeter script') {
+      steps {
+        sh '''
+          echo "Workspace: $WORKSPACE"
+          test -f "$JMETER_TEST" || { echo "ERROR: $JMETER_TEST not found"; ls -la; exit 1; }
+        '''
+      }
+    }
 
     stage('Run JMeter via Docker') {
       steps {
@@ -28,6 +39,7 @@ pipeline {
         '''
       }
     }
+
     stage('Publish HTML Report') {
       steps {
         publishHTML(target: [
@@ -39,8 +51,11 @@ pipeline {
         ])
       }
     }
+
     stage('Archive Results') {
-      steps { archiveArtifacts artifacts: 'results/**', fingerprint: true }
+      steps {
+        archiveArtifacts artifacts: 'results/**', fingerprint: true
+      }
     }
   }
 }
