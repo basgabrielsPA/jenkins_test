@@ -33,6 +33,29 @@ pipeline {
         sh '''
           set -euxo pipefail
 
+		  cat > user.properties <<'EOF'
+			jmeter.save.saveservice.output_format=csv
+			jmeter.save.saveservice.bytes=true
+			jmeter.save.saveservice.label=true
+			jmeter.save.saveservice.latency=true
+			jmeter.save.saveservice.response_code=true
+			jmeter.save.saveservice.response_message=true
+			jmeter.save.saveservice.successful=true
+			jmeter.save.saveservice.thread_counts=true
+			jmeter.save.saveservice.thread_name=true
+			jmeter.save.saveservice.time=true
+			jmeter.save.saveservice.connect_time=true
+			jmeter.save.saveservice.timestamp_format=yyyy/MM/dd HH:mm:ss
+
+			jmeter.reportgenerator.apdex_satisfied_threshold=500
+			jmeter.reportgenerator.apdex_tolerated_threshold=1500
+			aggregate_rpt_pct1=90
+			aggregate_rpt_pct2=95
+			aggregate_rpt_pct3=99
+			jmeter.reportgenerator.exporter.html.series_filter=^(Login|Search|Checkout)$
+			jmeter.reportgenerator.overall_granularity=60000
+			EOF
+
           # JMeter requires that the -o directory does NOT already exist
           rm -rf "$RESULTS_DIR/report"
           mkdir -p "$RESULTS_DIR"
@@ -53,28 +76,8 @@ pipeline {
             "$JMETER_IMAGE" \
             -n \
             -t "$JMETER_TEST" \
-            -l "$RESULTS_DIR/results.jtl" -f \
-			
-			
-			-Jjmeter.save.saveservice.output_format=csv \
-			-Jjmeter.save.saveservice.bytes=true \
-			-Jjmeter.save.saveservice.label=true \
-			-Jjmeter.save.saveservice.latency=true \
-			-Jjmeter.save.saveservice.response_code=true \
-			-Jjmeter.save.saveservice.response_message=true \
-			-Jjmeter.save.saveservice.successful=true \
-			-Jjmeter.save.saveservice.thread_counts=true \
-			-Jjmeter.save.saveservice.thread_name=true \
-			-Jjmeter.save.saveservice.time=true \
-			-Jjmeter.save.saveservice.connect_time=true \
-			-Jjmeter.save.saveservice.timestamp_format="yyyy/MM/dd HH:mm:ss" \
-			-Jjmeter.reportgenerator.apdex_satisfied_threshold=500 \
-			-Jjmeter.reportgenerator.apdex_tolerated_threshold=1500 \
-			-Jaggregate_rpt_pct1=90 -Jaggregate_rpt_pct2=95 -Jaggregate_rpt_pct3=99 \
-			-Jjmeter.reportgenerator.exporter.html.series_filter="^(Login|Search|Checkout)$" \
-			-Jjmeter.reportgenerator.overall_granularity=60000 \
-
-			
+			-q "$WORKSPACE/user.properties" \
+            -l "$RESULTS_DIR/results.jtl" -f \			
             -e -o "$RESULTS_DIR/report" \
             -j "$RESULTS_DIR/jmeter.log"
         '''
