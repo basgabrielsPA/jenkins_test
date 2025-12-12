@@ -24,21 +24,27 @@ pipeline {
       }
     }
 
-    stage('Run JMeter via Docker') {
-      steps {
-        sh '''
-          set -e
-          mkdir -p results
-          docker run --rm \
-            -v "$PWD:/work" \
-            -w /work \
-            alpine/jmeter:5.6.3 \
-            -n -t "$JMETER_TEST" \
-            -l results/results.jtl \
-            -e -o results/report
-        '''
-      }
-    }
+    
+	stage('Run JMeter via Docker') {
+	  steps {
+		sh '''
+		  set -euxo pipefail
+		  rm -rf results/report         # ensure report dir does NOT exist
+		  mkdir -p results              # parent must exist
+
+		  # Use same uid/gid inside the JMeter container as the current Jenkins user
+		  docker run --rm \
+			-u "$(id -u):$(id -g)" \
+			-v "$PWD:/work" \
+			-w /work \
+			alpine/jmeter:5.6.3 \
+			-n -t "$JMETER_TEST" \
+			-l results/results.jtl \
+			-e -o results/report
+		'''
+	  }
+	}
+
 
     stage('Publish HTML Report') {
       steps {
