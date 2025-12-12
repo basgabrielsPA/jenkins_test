@@ -27,21 +27,31 @@ pipeline {
     
 	stage('Run JMeter via Docker') {
 	  steps {
+		
 		sh '''
 		  set -euxo pipefail
-		  rm -rf results/report         # ensure report dir does NOT exist
-		  mkdir -p results              # parent must exist
+		  rm -rf results/report
+		  mkdir -p results
 
-		  # Use same uid/gid inside the JMeter container as the current Jenkins user
+		  # Use a named volume for the /work/results path (Docker manages perms)
+		  docker volume create jmeter_results || true
+
 		  docker run --rm \
-			-u "$(id -u):$(id -g)" \
 			-v "$PWD:/work" \
+			-v jmeter_results:/work/results \
 			-w /work \
 			alpine/jmeter:5.6.3 \
 			-n -t "$JMETER_TEST" \
-			-l results/results.jtl \
-			-e -o results/report
+			-l /work/results/results.jtl \
+			-e -o /work/results/report
+
+		  # Copy results back into the workspace so Jenkins can publish/archive them
+		  docker run --rm \
+			-v jmeter_results:/src \
+			-v "$PWD:/dst" \
+			alpine:3.19 sh -c 'cp -r /src/* /dst/results/'
 		'''
+
 	  }
 	}
 
