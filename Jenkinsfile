@@ -5,9 +5,14 @@ pipeline {
     JMETER_TEST = 'tests/loadtest.jmx'
   }
   stages {
-    stage('Checkout') {
-      steps { checkout scm }
-    }
+    
+	stage('Checkout') {
+		  steps {
+			checkout scm
+			sh 'ls -la && ls -la tests || true'
+		  }
+		}
+
     stage('Run JMeter via Docker') {
       steps {
         sh '''
