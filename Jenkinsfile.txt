@@ -74,55 +74,35 @@ EOF
       }
     }
 
-
-
-stage('Run JMeter (Docker, volumes-from jenkins)') {
-  steps {
-    sh '''
-      set -euxo pipefail
-
-      # Optional workspace visibility check
-      docker run --rm \
-        --volumes-from jenkins \
-        -u "$(id -u):$(id -g)" \
-        -w "$WORKSPACE" \
-        alpine:3.19 \
-        sh -c 'ls -la "$PWD" && ls -la "$(dirname "$JMETER_TEST")"'
-
-      # Run JMeter after installing the WebSocket Samplers plugin
-      docker run --rm \
-        --volumes-from jenkins \
-        -u "$(id -u):$(id -g)" \
-        -w "$WORKSPACE" \
-        "$JMETER_IMAGE" \
-        sh -lc '
+    stage('Run JMeter (Docker, volumes-from jenkins)') {
+      steps {
+        sh '''
           set -euxo pipefail
 
-          # Resolve actual JMeter home used by this base image
-          JMETER_HOME="$(dirname $(readlink -f /opt/apache-jmeter*/bin/jmeter))"
+          # Optional visibility check: the JMeter container should see the same workspace
+          docker run --rm \
+            --volumes-from jenkins \
+            -u "$(id -u):$(id -g)" \
+            -w "$WORKSPACE" \
+            alpine:3.19 \
+            sh -c 'ls -la "$PWD" && ls -la "$(dirname "$JMETER_TEST")"'
 
-          # Pick the version you want — 1.3.2 is the newest listed in catalog
-          VERSION="1.3.2"
-          PLUGIN_JAR="jmeter-websocket-samplers-${VERSION}.jar"
-          PLUGIN_URL="https://repo1.maven.org/maven2/net/luminis/jmeter/jmeter-websocket-samplers/${VERSION}/${PLUGIN_JAR}"
-
-          # Download plugin from Maven Central (validated coordinates)
-          wget -q -O "${JMETER_HOME}/lib/ext/${PLUGIN_JAR}" "${PLUGIN_URL}"
-
-          # Run JMeter
-          jmeter -n \
+          # Run JMeter, write JTL, and generate HTML dashboard
+          docker run --rm \
+            --volumes-from jenkins \
+            -u "$(id -u):$(id -g)" \
+            -w "$WORKSPACE" \
+            "$JMETER_IMAGE" \
+            -n \
             -t "$JMETER_TEST" \
             -l "$RESULTS_DIR/results.jtl" \
             -f \
             -q "$WORKSPACE/user.properties" \
             -e -o "$RESULTS_DIR/report" \
             -j "$RESULTS_DIR/jmeter.log"
-        '
-    '''
-  }
-}
-
-
+        '''
+      }
+    }
 
     stage('Publish HTML Report') {
       steps {
