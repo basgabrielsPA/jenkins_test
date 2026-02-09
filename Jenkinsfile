@@ -76,12 +76,15 @@ EOF
 
 
 
+
 stage('Run JMeter (Docker, volumes-from jenkins)') {
   steps {
     sh '''
       set -euxo pipefail
 
-      # Optional workspace visibility check
+      #
+      # Optional: Workspace visibility check
+      #
       docker run --rm \
         --volumes-from jenkins \
         -u "$(id -u):$(id -g)" \
@@ -89,7 +92,9 @@ stage('Run JMeter (Docker, volumes-from jenkins)') {
         alpine:3.19 \
         sh -c 'ls -la "$PWD" && ls -la "$(dirname "$JMETER_TEST")"'
 
-      # Run JMeter after installing the WebSocket Samplers plugin
+      #
+      # Run JMeter with WebSocket plugin installed via direct JAR copy
+      #
       docker run --rm \
         --volumes-from jenkins \
         -u "$(id -u):$(id -g)" \
@@ -98,18 +103,18 @@ stage('Run JMeter (Docker, volumes-from jenkins)') {
         sh -lc '
           set -euxo pipefail
 
-          # Resolve actual JMeter home used by this base image
+          # Detect JMeter home inside the container
           JMETER_HOME="$(dirname $(readlink -f /opt/apache-jmeter*/bin/jmeter))"
 
-          # Pick the version you want — 1.3.2 is the newest listed in catalog
+          # WebSocket Samplers plugin (Peter Doornbosch)
           VERSION="1.3.2"
           PLUGIN_JAR="jmeter-websocket-samplers-${VERSION}.jar"
           PLUGIN_URL="https://repo1.maven.org/maven2/net/luminis/jmeter/jmeter-websocket-samplers/${VERSION}/${PLUGIN_JAR}"
 
-          # Download plugin from Maven Central (validated coordinates)
+          echo "Downloading WebSocket Samplers plugin..."
           wget -q -O "${JMETER_HOME}/lib/ext/${PLUGIN_JAR}" "${PLUGIN_URL}"
 
-          # Run JMeter
+          echo "Running JMeter..."
           jmeter -n \
             -t "$JMETER_TEST" \
             -l "$RESULTS_DIR/results.jtl" \
@@ -121,7 +126,6 @@ stage('Run JMeter (Docker, volumes-from jenkins)') {
     '''
   }
 }
-
 
 
     stage('Publish HTML Report') {
