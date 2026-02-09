@@ -78,12 +78,15 @@ EOF
 
 
 
+
 stage('Run JMeter (Docker, volumes-from jenkins)') {
   steps {
     sh '''
       set -euxo pipefail
 
-      # Optional workspace visibility
+      #
+      # Optional: visibility check
+      #
       docker run --rm \
         --volumes-from jenkins \
         -u "$(id -u):$(id -g)" \
@@ -91,34 +94,52 @@ stage('Run JMeter (Docker, volumes-from jenkins)') {
         alpine:3.19 \
         sh -c "ls -la '$PWD' && ls -la '$(dirname "$JMETER_TEST")'"
 
-      # Actual JMeter execution
+      #
+      # 1) Download the WebSocket Samplers plugin JAR into the workspace
+      #    (No need to know JMETER_HOME inside the image)
+      #
+      docker run --rm \
+        --volumes-from jenkins \
+        -u "$(id -u):$(id -g)" \
+        -w "$WORKSPACE" \
+        alpine:3.19 \
+        sh -c "
+          set -eux
+          mkdir -p '$WORKSPACE/.jmeter-plugins'
+          VERSION='1.3.2'
+          PLUGIN_JAR='jmeter-websocket-samplers-'\"$VERSION\"'.jar'
+          PLUGIN_URL='https://repo1.maven.org/maven2/net/luminis/jmeter/jmeter-websocket-samplers/'\"$VERSION\"'/'\"$PLUGIN_JAR\"''
+          # BusyBox wget is available in alpine:3.19
+          wget -q -O '$WORKSPACE/.jmeter-plugins/'\"$PLUGIN_JAR\"\" '\"$PLUGIN_URL\"'
+          ls -la '$WORKSPACE/.jmeter-plugins'
+          # Optional: clean up any stray literal folder named \"$RESULTS_DIR
+          [ -d '$WORKSPACE/$RESULTS_DIR' ] || true
+          [ -d \"$WORKSPACE/\\$RESULTS_DIR\" ] && rm -rf \"$WORKSPACE/\\$RESULTS_DIR\" || true
+        "
+
+      #
+      # 2) Run JMeter, adding the plugin jar via -Jsearch_paths
+      #
       docker run --rm \
         --volumes-from jenkins \
         -u "$(id -u):$(id -g)" \
         -w "$WORKSPACE" \
         "$JMETER_IMAGE" \
         sh -c "
-          set -euxo pipefail
-
-          JMETER_HOME=\$(dirname \$(readlink -f /opt/apache-jmeter*/bin/jmeter))
-
-          VERSION=1.3.2
-          PLUGIN_JAR=jmeter-websocket-samplers-\${VERSION}.jar
-          PLUGIN_URL=https://repo1.maven.org/maven2/net/luminis/jmeter/jmeter-websocket-samplers/\${VERSION}/\${PLUGIN_JAR}
-
-          wget -q -O \"\$JMETER_HOME/lib/ext/\$PLUGIN_JAR\" \"\$PLUGIN_URL\"
-
-          jmeter -n \\
-            -t \"$JMETER_TEST\" \\
-            -l \"$RESULTS_DIR/results.jtl\" \\
-            -f \\
-            -q \"$WORKSPACE/user.properties\" \\
-            -e -o \"$RESULTS_DIR/report\" \\
+          set -eux
+          jmeter -n \
+            -t \"$JMETER_TEST\" \
+            -l \"$RESULTS_DIR/results.jtl\" \
+            -f \
+            -q \"$WORKSPACE/user.properties\" \
+            -Jsearch_paths=\"$WORKSPACE/.jmeter-plugins/jmeter-websocket-samplers-1.3.2.jar\" \
+            -e -o \"$RESULTS_DIR/report\" \
             -j \"$RESULTS_DIR/jmeter.log\"
         "
     '''
   }
 }
+
 
 
 
