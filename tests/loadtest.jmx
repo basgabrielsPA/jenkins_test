@@ -5,6 +5,8 @@
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
       <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
@@ -44,22 +46,169 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
+      <BackendListener guiclass="BackendListenerGui" testclass="BackendListener" testname="Backend Listener - nieuw">
+        <elementProp name="arguments" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments">
+          <collectionProp name="Arguments.arguments">
+            <elementProp name="testName" elementType="Argument">
+              <stringProp name="Argument.name">testName</stringProp>
+              <stringProp name="Argument.value">jenkins</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="nodeName" elementType="Argument">
+              <stringProp name="Argument.name">nodeName</stringProp>
+              <stringProp name="Argument.value">Test-Node</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="runId" elementType="Argument">
+              <stringProp name="Argument.name">runId</stringProp>
+              <stringProp name="Argument.value">R001</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="influxDBURL" elementType="Argument">
+              <stringProp name="Argument.name">influxDBURL</stringProp>
+              <stringProp name="Argument.value">http://localhost:8086/</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="influxDBToken" elementType="Argument">
+              <stringProp name="Argument.name">influxDBToken</stringProp>
+              <stringProp name="Argument.value">my-super-token</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="influxDBOrganization" elementType="Argument">
+              <stringProp name="Argument.name">influxDBOrganization</stringProp>
+              <stringProp name="Argument.value">jmeter-org</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="influxDBBucket" elementType="Argument">
+              <stringProp name="Argument.name">influxDBBucket</stringProp>
+              <stringProp name="Argument.value">jmeter</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="influxDBFlushInterval" elementType="Argument">
+              <stringProp name="Argument.name">influxDBFlushInterval</stringProp>
+              <stringProp name="Argument.value">4000</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="influxDBMaxBatchSize" elementType="Argument">
+              <stringProp name="Argument.name">influxDBMaxBatchSize</stringProp>
+              <stringProp name="Argument.value">2000</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="influxDBThresholdError" elementType="Argument">
+              <stringProp name="Argument.name">influxDBThresholdError</stringProp>
+              <stringProp name="Argument.value">5</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="samplersList" elementType="Argument">
+              <stringProp name="Argument.name">samplersList</stringProp>
+              <stringProp name="Argument.value">.*</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="useRegexForSamplerList" elementType="Argument">
+              <stringProp name="Argument.name">useRegexForSamplerList</stringProp>
+              <stringProp name="Argument.value">true</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="recordSubSamples" elementType="Argument">
+              <stringProp name="Argument.name">recordSubSamples</stringProp>
+              <stringProp name="Argument.value">true</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="saveResponseBodyOfFailures" elementType="Argument">
+              <stringProp name="Argument.name">saveResponseBodyOfFailures</stringProp>
+              <stringProp name="Argument.value">true</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="responseBodyLength" elementType="Argument">
+              <stringProp name="Argument.name">responseBodyLength</stringProp>
+              <stringProp name="Argument.value">2000</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+          </collectionProp>
+        </elementProp>
+        <stringProp name="classname">io.github.mderevyankoaqa.influxdb2.visualizer.InfluxDatabaseBackendListenerClient</stringProp>
+      </BackendListener>
+      <hashTree/>
+      <BackendListener guiclass="BackendListenerGui" testclass="BackendListener" testname="Backend Listener" enabled="false">
+        <elementProp name="arguments" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments">
+          <collectionProp name="Arguments.arguments">
+            <elementProp name="influxdbMetricsSender" elementType="Argument">
+              <stringProp name="Argument.name">influxdbMetricsSender</stringProp>
+              <stringProp name="Argument.value">org.apache.jmeter.visualizers.backend.influxdb.HttpMetricsSender</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="influxdbUrl" elementType="Argument">
+              <stringProp name="Argument.name">influxdbUrl</stringProp>
+              <stringProp name="Argument.value">http://localhost:8086/api/v2/write?org=jmeter-org&amp;bucket=jmeter</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="application" elementType="Argument">
+              <stringProp name="Argument.name">application</stringProp>
+              <stringProp name="Argument.value">my-app</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="measurement" elementType="Argument">
+              <stringProp name="Argument.name">measurement</stringProp>
+              <stringProp name="Argument.value">jmeter</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="summaryOnly" elementType="Argument">
+              <stringProp name="Argument.name">summaryOnly</stringProp>
+              <stringProp name="Argument.value">false</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="samplersRegex" elementType="Argument">
+              <stringProp name="Argument.name">samplersRegex</stringProp>
+              <stringProp name="Argument.value">.*</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="percentiles" elementType="Argument">
+              <stringProp name="Argument.name">percentiles</stringProp>
+              <stringProp name="Argument.value">99;95;90</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="testTitle" elementType="Argument">
+              <stringProp name="Argument.name">testTitle</stringProp>
+              <stringProp name="Argument.value">${__time(yyyyMMdd-HHmm)}</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="eventTags" elementType="Argument">
+              <stringProp name="Argument.name">eventTags</stringProp>
+              <stringProp name="Argument.value"></stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="influxdbToken" elementType="Argument">
+              <stringProp name="Argument.name">influxdbToken</stringProp>
+              <stringProp name="Argument.value">my-super-token</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="tagFields" elementType="Argument">
+              <stringProp name="Argument.name">tagFields</stringProp>
+              <stringProp name="Argument.value">application</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+          </collectionProp>
+        </elementProp>
+        <stringProp name="classname">org.apache.jmeter.visualizers.backend.influxdb.InfluxdbBackendListenerClient</stringProp>
+      </BackendListener>
+      <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
-          <stringProp name="LoopController.loops">1</stringProp>
+          <intProp name="LoopController.loops">-1</intProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
         <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="openHomepage">
+          <boolProp name="TransactionController.parent">true</boolProp>
           <boolProp name="TransactionController.includeTimers">false</boolProp>
         </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HTTP Request">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="request #1">
             <stringProp name="HTTPSampler.domain">saucedemo.com</stringProp>
             <stringProp name="HTTPSampler.protocol">https</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
@@ -70,6 +219,10 @@
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
           </HTTPSamplerProxy>
+          <hashTree/>
+          <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Constant Timer">
+            <stringProp name="ConstantTimer.delay">2000</stringProp>
+          </ConstantTimer>
           <hashTree/>
         </hashTree>
       </hashTree>
