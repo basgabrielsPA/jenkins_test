@@ -80,17 +80,18 @@ EOF
 
 
 
+
 stage('Run JMeter (Docker, volumes-from jenkins)') {
   steps {
     sh '''
       set -euxo pipefail
 
-      # ---- Safe version variable with default (works even under `set -u`) ----
+      # Safe version with default
       WS_VER="${WEBSOCKET_SAMPLERS_VERSION:-1.3.2}"
       PLUGIN_JAR="jmeter-websocket-samplers-${WS_VER}.jar"
       PLUGIN_URL="https://repo1.maven.org/maven2/net/luminis/jmeter/jmeter-websocket-samplers/${WS_VER}/${PLUGIN_JAR}"
 
-      # ---- Optional: workspace visibility check ----
+      # Optional: visibility check
       docker run --rm \
         --volumes-from jenkins \
         -u "$(id -u):$(id -g)" \
@@ -98,10 +99,10 @@ stage('Run JMeter (Docker, volumes-from jenkins)') {
         alpine:3.19 \
         sh -c "ls -la '$PWD' && ls -la '$(dirname "$JMETER_TEST")'"
 
-      # ---- Clean up a stray folder literally named "$RESULTS_DIR" (from earlier quoting) ----
+      # Clean a stray literal folder named "$RESULTS_DIR" if it exists
       [ -d "$WORKSPACE/\\$RESULTS_DIR" ] && rm -rf "$WORKSPACE/\\$RESULTS_DIR" || true
 
-      # ---- Ensure a workspace-local plugins folder and download the WebSocket Samplers JAR ----
+      # Download plugin jar into workspace
       docker run --rm \
         --volumes-from jenkins \
         -u "$(id -u):$(id -g)" \
@@ -110,35 +111,31 @@ stage('Run JMeter (Docker, volumes-from jenkins)') {
         sh -c "
           set -eux
           mkdir -p .jmeter-plugins
-          # Download only if missing
           if [ ! -f .jmeter-plugins/${PLUGIN_JAR} ]; then
-            # BusyBox wget usually has CA certs; if TLS fails, retry without CA check (last resort)
             wget -q -O .jmeter-plugins/${PLUGIN_JAR} ${PLUGIN_URL} || \
               busybox wget --no-check-certificate -q -O .jmeter-plugins/${PLUGIN_JAR} ${PLUGIN_URL}
           fi
           ls -la .jmeter-plugins
         "
 
-      # ---- Run JMeter once, add the plugin via -Jsearch_paths (no need to know JMETER_HOME) ----
+      # Run JMeter by passing args directly (no shell => no '-c' seen by JMeter)
       docker run --rm \
         --volumes-from jenkins \
         -u "$(id -u):$(id -g)" \
         -w "$WORKSPACE" \
         "$JMETER_IMAGE" \
-        sh -c "
-          set -eux
-          jmeter -n \
-            -t \"$JMETER_TEST\" \
-            -l \"$RESULTS_DIR/results.jtl\" \
-            -f \
-            -q \"$WORKSPACE/user.properties\" \
-            -Jsearch_paths=\"$WORKSPACE/.jmeter-plugins/${PLUGIN_JAR}\" \
-            -e -o \"$RESULTS_DIR/report\" \
-            -j \"$RESULTS_DIR/jmeter.log\"
-        "
+        -n \
+        -t "$JMETER_TEST" \
+        -l "$RESULTS_DIR/results.jtl" \
+        -f \
+        -q "$WORKSPACE/user.properties" \
+        -Jsearch_paths="$WORKSPACE/.jmeter-plugins/${PLUGIN_JAR}" \
+        -e -o "$RESULTS_DIR/report" \
+        -j "$RESULTS_DIR/jmeter.log"
     '''
   }
 }
+
 
 
 
